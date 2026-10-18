@@ -424,7 +424,7 @@ img[src*="netlify"] {
         <div class="modal-content p-8 text-center">
             <div class="w-16 h-16 bg-gradient-to-br from-cyan-400 to-blue-600 rounded-2xl mx-auto flex items-center justify-center text-3xl mb-4 shadow-[0_10px_20px_rgba(0,240,255,0.3)]">🎁</div>
             <h2 class="text-2xl font-black mb-2 tracking-wide">Активация кода</h2>
-            <p class="text-gray-400 text-sm mb-6">Введите промокод от разработчика или код пополнения баланса</p>
+            <p class="text-gray-400 text-sm mb-6">Введите промокод от разработчика</p>
             
             <input type="text" id="promo-input" class="premium-input mb-6" placeholder="ВВЕДИТЕ КОД...">
             
@@ -483,6 +483,16 @@ img[src*="netlify"] {
         };
 
         const IMAGE_PATH_PREFIX = ''; // ПУСТО, ТАК КАК КАРТИНКИ В ОДНОЙ ПАПКЕ СО СКРИПТОМ
+
+        // === БАЗА ПРОМОКОДОВ ===
+        const VALID_PROMOS = {
+            'START1000': { coins: 1000 },
+            'BRAINFLIP2026': { coins: 2500 },
+            'ULTRAMODE': { coins: 5000 },
+            'MEGASECRET': { coins: 15000 }
+        };
+
+        const EXPIRED_PROMOS = ['BETA', 'TEST500', 'OLDCODE'];
 
         const ALL_ITEMS = {
             // Noobini Case
@@ -795,7 +805,7 @@ img[src*="netlify"] {
         }
 
         /**
-         * TELEGRAM FLOWS
+         * TELEGRAM FLOWS & PROMOCODES
          */
         function submitDeposit() {
             const nick = document.getElementById('dep-nick').value.trim();
@@ -848,23 +858,59 @@ img[src*="netlify"] {
         }
 
         function activatePromo() {
-            const code = document.getElementById('promo-input').value.trim();
+            const code = document.getElementById('promo-input').value.trim().toUpperCase();
             if(!code) return;
             
-            let data = { action: 'promo', code: code };
-            try { if(tg) tg.sendData(JSON.stringify(data)); } catch(e){}
-            
-            if(code.startsWith('DEV-')) {
+            // Загружаем список уже использованных пользователем кодов
+            let usedPromos = JSON.parse(localStorage.getItem('bf_used_promos')) || [];
+
+            // Проверка 1: Исчерпан ли лимит (Код в списке неактивных)
+            if (EXPIRED_PROMOS.includes(code)) {
+                showToast("Активации промокода исчерпаны!", 'error');
+                return;
+            }
+
+            // Проверка 2: Использовал ли уже этот код текущий игрок
+            if (usedPromos.includes(code)) {
+                showToast("Вы уже активировали этот промокод (только 1 раз)!", 'error');
+                return;
+            }
+
+            // Проверка 3: Существует ли код в активной базе
+            if (VALID_PROMOS[code]) {
+                let reward = VALID_PROMOS[code].coins;
+                balance += reward;
+                
+                // Записываем код как использованный
+                usedPromos.push(code);
+                localStorage.setItem('bf_used_promos', JSON.stringify(usedPromos));
+                
+                saveState();
+                showToast(`Активировано! +${reward.toLocaleString()} 💰`, 'success');
+                playSound('win');
+                createParticles();
+                
+                // Опционально: уведомляем бота об успешной активации (чтобы логировать в админке)
+                let data = { action: 'promo_success', code: code, reward: reward };
+                try { if(tg) tg.sendData(JSON.stringify(data)); } catch(e){}
+                
+            } else if(code.startsWith('DEV-')) {
+                // Динамические коды разработчика на любую сумму
                 let amount = parseInt(code.split('-')[1]);
                 if(amount > 0) {
                     balance += amount;
+                    usedPromos.push(code);
+                    localStorage.setItem('bf_used_promos', JSON.stringify(usedPromos));
                     saveState();
-                    showToast(`Активировано! +${amount.toLocaleString()} 💰`, 'success');
+                    showToast(`Код разработчика применен! +${amount.toLocaleString()} 💰`, 'success');
                     playSound('win');
+                } else {
+                    showToast("Данного промокода не существует!", 'error');
                 }
             } else {
-                showToast("Запрос отправлен боту.", 'success');
+                showToast("Данного промокода не существует!", 'error');
             }
+            
             closeModal('modal-promo');
             document.getElementById('promo-input').value = '';
         }
