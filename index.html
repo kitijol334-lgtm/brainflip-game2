@@ -7,10 +7,11 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-/* Блокировка водяного знака Netlify */
+/* Блокировка водяного знака Netlify/Render */
 a[href*="netlify.com"], 
 div[id^="netlify-"], 
-img[src*="netlify"] {
+img[src*="netlify"],
+a[href*="render.com"] {
     display: none !important;
     opacity: 0 !important;
     pointer-events: none !important;
@@ -66,6 +67,7 @@ img[src*="netlify"] {
 
         .btn-press { transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
         .btn-press:active { transform: scale(0.93); filter: brightness(1.2); }
+        .btn-press.disabled { transform: none !important; filter: none !important; opacity: 0.5; pointer-events: none; }
 
         /* Рулетка */
         .roulette-wrapper {
@@ -139,11 +141,6 @@ img[src*="netlify"] {
             background: linear-gradient(180deg, rgba(0,240,255,0.1) 0%, transparent 100%) !important;
             transform: translateY(-2px);
         }
-        .target-selected {
-            border: 2px solid var(--neon-pink) !important;
-            box-shadow: 0 0 20px rgba(255, 0, 60, 0.3), inset 0 0 15px rgba(255, 0, 60, 0.1) !important;
-            background: linear-gradient(180deg, rgba(255,0,60,0.1) 0%, transparent 100%) !important;
-        }
 
         /* Система вкладок */
         .tab-btn {
@@ -168,19 +165,17 @@ img[src*="netlify"] {
         .modal-content {
             width: 100%; max-width: 420px; max-height: 85vh; display: flex; flex-direction: column;
             transform: scale(0.95) translateY(20px); opacity: 0; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            background: #0d0d14; /* Solid background for modal to avoid transparency issues */
+            background: #0d0d14; 
             border-radius: 32px;
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
         .modal-overlay.open .modal-content { transform: scale(1) translateY(0); opacity: 1; }
 
-        /* Кастомный Скроллбар для модалок */
         .custom-scroll::-webkit-scrollbar { width: 6px; }
         .custom-scroll::-webkit-scrollbar-track { background: rgba(255,255,255,0.02); border-radius: 10px; }
         .custom-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
-        .custom-scroll::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
 
-        /* Система уведомлений (Toasts) */
+        /* Система уведомлений */
         #toast-container { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 9999; display: flex; flex-direction: column; gap: 10px; pointer-events: none; }
         .toast {
             background: rgba(15, 15, 20, 0.95); border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(10px);
@@ -194,20 +189,16 @@ img[src*="netlify"] {
         @keyframes toastEnter { from { opacity: 0; transform: translateY(-30px) scale(0.9); } to { opacity: 1; transform: translateY(0) scale(1); } }
         @keyframes toastExit { from { opacity: 1; transform: translateY(0) scale(1); } to { opacity: 0; transform: translateY(-20px) scale(0.9); } }
 
-        /* Система Частиц (Confetti/Particles) */
         #particles-container { position: fixed; inset: 0; pointer-events: none; z-index: 900; overflow: hidden; }
         .particle { position: absolute; border-radius: 50%; will-change: transform, opacity; }
 
-        /* Поля ввода (Inputs) */
         .premium-input {
             width: 100%; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1);
             color: white; padding: 16px; border-radius: 16px; font-family: 'Outfit', sans-serif;
             font-size: 1rem; outline: none; transition: all 0.3s ease; text-align: center;
         }
         .premium-input:focus { border-color: var(--neon-blue); box-shadow: 0 0 15px rgba(0,240,255,0.2); background: rgba(0,0,0,0.6); }
-        .premium-input::placeholder { color: rgba(255,255,255,0.3); }
 
-        /* Hide images that failed to load to prevent ugly broken image icons */
         img { text-indent: -10000px; }
         img.error-image {
             background-color: rgba(255, 255, 255, 0.05);
@@ -215,23 +206,15 @@ img[src*="netlify"] {
             position: relative;
         }
         img.error-image::after {
-            content: '?';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            color: rgba(255, 255, 255, 0.2);
-            font-size: 2rem;
-            font-weight: bold;
+            content: '?'; position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%); color: rgba(255, 255, 255, 0.2);
+            font-size: 2rem; font-weight: bold;
         }
     </style>
 </head>
 <body>
 
-    <!-- Тосты (Уведомления) -->
     <div id="toast-container"></div>
-    
-    <!-- Частицы (Победа) -->
     <div id="particles-container"></div>
 
     <!-- ВЕРХНЯЯ ПАНЕЛЬ -->
@@ -239,7 +222,7 @@ img[src*="netlify"] {
         <h1 class="text-2xl font-black bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-purple-500 to-pink-500 uppercase tracking-widest drop-shadow-[0_0_15px_rgba(0,240,255,0.4)]">BrainFlip</h1>
         <div class="flex gap-2">
             <button onclick="openModal('modal-promo')" class="px-4 py-2 glass-button rounded-xl text-xs font-black tracking-wider text-gray-200">КОДЫ</button>
-            <button onclick="openModal('modal-deposit')" class="px-4 py-2 bg-green-500/10 border border-green-500/30 text-green-400 rounded-xl text-xs font-black tracking-wider btn-press hover:bg-green-500/20 shadow-[0_0_15px_rgba(0,255,102,0.1)]">ПОПОЛНИТЬ</button>
+            <button onclick="openModal('modal-deposit')" class="px-4 py-2 bg-green-500/10 border border-green-500/30 text-green-400 rounded-xl text-xs font-black tracking-wider btn-press shadow-[0_0_15px_rgba(0,255,102,0.1)]">ПОПОЛНИТЬ</button>
         </div>
     </header>
 
@@ -270,7 +253,6 @@ img[src*="netlify"] {
         <!-- Вкладка: АПГРЕЙДЕР -->
         <div id="view-upgrader" class="hidden space-y-8 pb-6">
             <div class="flex gap-3 relative">
-                <!-- Контейнер для Моих предметов -->
                 <div class="flex-1 glass-panel rounded-3xl p-2 flex flex-col items-center justify-start min-h-[140px] btn-press relative cursor-pointer border-t border-t-white/10" onclick="openUpgraderInvMulti()">
                     <div class="w-full text-center py-2 border-b border-white/5 mb-2">
                         <span class="text-[9px] text-gray-400 font-bold uppercase tracking-widest">Ваша ставка</span>
@@ -282,7 +264,6 @@ img[src*="netlify"] {
                 
                 <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 bg-[#05050A] p-2 rounded-full border border-white/5 text-gray-500 font-black italic text-sm shadow-[0_0_15px_rgba(0,0,0,0.8)]">VS</div>
                 
-                <!-- Контейнер для Цели -->
                 <div class="flex-1 glass-panel rounded-3xl p-2 flex flex-col items-center justify-start min-h-[140px] btn-press relative cursor-pointer border-t border-t-white/10" onclick="showUpgraderTargets()">
                     <div class="w-full text-center py-2 border-b border-white/5 mb-2">
                         <span class="text-[9px] text-gray-400 font-bold uppercase tracking-widest">Желаемая цель</span>
@@ -293,7 +274,6 @@ img[src*="netlify"] {
                 </div>
             </div>
 
-            <!-- Колесо Апгрейдера -->
             <div class="flex flex-col items-center relative py-4">
                 <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-cyan-500/10 blur-[60px] rounded-full pointer-events-none z-0"></div>
                 
@@ -307,7 +287,7 @@ img[src*="netlify"] {
                 </div>
             </div>
 
-            <button id="btn-do-upgrade" onclick="startUpgrade()" class="w-full py-5 bg-gradient-to-r from-cyan-500 to-blue-600 font-black rounded-2xl text-xl opacity-50 pointer-events-none btn-press uppercase tracking-widest text-white shadow-[0_10px_30px_rgba(0,240,255,0.3)]">
+            <button id="btn-do-upgrade" onclick="startUpgrade()" class="w-full py-5 bg-gradient-to-r from-cyan-500 to-blue-600 font-black rounded-2xl text-xl disabled btn-press uppercase tracking-widest text-white shadow-[0_10px_30px_rgba(0,240,255,0.3)]">
                 Апгрейд
             </button>
         </div>
@@ -326,7 +306,6 @@ img[src*="netlify"] {
                 <button onclick="openModal('modal-withdraw')" class="flex-1 py-4 bg-purple-500/10 text-purple-400 border border-purple-500/30 rounded-xl font-black tracking-widest text-sm btn-press shadow-[0_0_15px_rgba(168,85,247,0.1)]">ВЫВЕСТИ</button>
             </div>
         </div>
-
     </main>
 
     <!-- === МОДАЛЬНЫЕ ОКНА === -->
@@ -349,7 +328,7 @@ img[src*="netlify"] {
                 </div>
 
                 <button id="btn-open-case" class="w-full py-5 bg-gradient-to-r from-yellow-500 to-amber-600 rounded-2xl font-black text-xl text-black btn-press uppercase tracking-widest shadow-[0_10px_30px_rgba(245,158,11,0.4)] z-10 border border-yellow-400/50">
-                    ОТКРЫТЬ ЗА <span id="mc-price">0</span> 💰
+                    ОТКРЫТЬ ЗА <span id="mc-price">0</span>
                 </button>
             </div>
         </div>
@@ -415,7 +394,7 @@ img[src*="netlify"] {
             <img id="ur-img" src="" class="w-56 h-56 mx-auto object-contain mb-6 drop-shadow-[0_20px_30px_rgba(0,0,0,0.8)] relative z-10" onerror="this.classList.add('error-image');">
             <div id="ur-desc" class="text-lg text-gray-300 mb-8 relative z-10"></div>
             
-            <button onclick="closeModal('modal-upg-res')" class="w-full py-5 bg-white/10 border border-white/20 rounded-2xl font-black tracking-widest text-lg btn-press hover:bg-white/20 relative z-10 text-white uppercase">ПРОДОЛЖИТЬ</button>
+            <button onclick="closeModal('modal-upg-res')" class="w-full py-5 bg-white/10 border border-white/20 rounded-2xl font-black tracking-widest text-lg btn-press relative z-10 text-white uppercase">ПРОДОЛЖИТЬ</button>
         </div>
     </div>
 
@@ -423,10 +402,10 @@ img[src*="netlify"] {
     <div id="modal-promo" class="modal-overlay">
         <div class="modal-content p-8 text-center">
             <div class="w-16 h-16 bg-gradient-to-br from-cyan-400 to-blue-600 rounded-2xl mx-auto flex items-center justify-center text-3xl mb-4 shadow-[0_10px_20px_rgba(0,240,255,0.3)]">🎁</div>
-            <h2 class="text-2xl font-black mb-2 tracking-wide">Активация кода</h2>
-            <p class="text-gray-400 text-sm mb-6">Введите промокод от разработчика</p>
+            <h2 class="text-2xl font-black mb-2 tracking-wide">Ключ Разработчика</h2>
+            <p class="text-gray-400 text-xs mb-6">Сначала отправьте обычный промокод боту в чат. Бот выдаст вам уникальный DEV-ключ, который нужно ввести сюда.</p>
             
-            <input type="text" id="promo-input" class="premium-input mb-6" placeholder="ВВЕДИТЕ КОД...">
+            <input type="text" id="promo-input" class="premium-input mb-6" placeholder="Например: DEV-5000">
             
             <button onclick="activatePromo()" class="w-full py-4 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-black tracking-widest rounded-xl btn-press mb-3 uppercase">АКТИВИРОВАТЬ</button>
             <button onclick="closeModal('modal-promo')" class="w-full py-4 bg-white/5 text-gray-400 font-bold tracking-widest rounded-xl btn-press uppercase">ОТМЕНА</button>
@@ -438,7 +417,7 @@ img[src*="netlify"] {
         <div class="modal-content p-8 text-center">
             <div class="w-16 h-16 bg-gradient-to-br from-green-400 to-emerald-600 rounded-2xl mx-auto flex items-center justify-center text-3xl mb-4 shadow-[0_10px_20px_rgba(0,255,102,0.2)]">💳</div>
             <h2 class="text-2xl font-black mb-2 tracking-wide">Пополнение</h2>
-            <p class="text-gray-400 text-sm mb-6">Передайте предмет администратору в Roblox, чтобы получить монеты (Мин: Гарама)</p>
+            <p class="text-gray-400 text-sm mb-6">Передайте предмет администратору в игре, чтобы получить монеты (Мин: Гарама)</p>
             
             <input type="text" id="dep-nick" class="premium-input mb-4 text-sm" placeholder="Ваш никнейм в Roblox">
             <input type="text" id="dep-item" class="premium-input mb-6 text-sm" placeholder="Название предмета (буква в букву)">
@@ -463,65 +442,61 @@ img[src*="netlify"] {
     </div>
 
     <!-- ======================= -->
-    <!-- СКРИПТ ИГРЫ (ЛОГИКА И ЭФФЕКТЫ) -->
+    <!-- СКРИПТ ИГРЫ (ЛОГИКА) -->
     <!-- ======================= -->
     <script>
-        /**
-         * INITIALIZATION & CONFIGURATION
-         */
         const tg = window.Telegram ? window.Telegram.WebApp : null;
         if(tg) { tg.expand(); tg.ready(); }
 
         const RARITY_COLORS = {
-            common: '#9ca3af',   // Gray
-            uncommon: '#22c55e', // Green
-            rare: '#3b82f6',     // Blue
-            epic: '#a855f7',     // Purple
-            mythic: '#ec4899',   // Pink
-            legendary: '#eab308',// Gold
-            covert: '#ef4444'    // Red
+            common: '#9ca3af',
+            uncommon: '#22c55e',
+            rare: '#3b82f6',
+            epic: '#a855f7',
+            mythic: '#ec4899',
+            legendary: '#eab308',
+            covert: '#ef4444'
         };
 
-        const IMAGE_PATH_PREFIX = ''; // ПУСТО, ТАК КАК КАРТИНКИ В ОДНОЙ ПАПКЕ СО СКРИПТОМ
-
-        // === БАЗА ПРОМОКОДОВ ===
-        const VALID_PROMOS = {
-            'START1000': { coins: 1000 },
-            'BRAINFLIP2026': { coins: 2500 },
-            'ULTRAMODE': { coins: 5000 },
-            'MEGASECRET': { coins: 15000 }
-        };
-
-        const EXPIRED_PROMOS = ['BETA', 'TEST500', 'OLDCODE'];
+        const IMAGE_PATH_PREFIX = ''; 
 
         const ALL_ITEMS = {
-            // Noobini Case
             'noob_pizza': { name: 'Noobini Pizzanini', price: 1, img: 'image_703984.png', color: RARITY_COLORS.common }, 
             'bobrito': { name: 'Bobrito Bandito', price: 5, img: 'image_703a07.png', color: RARITY_COLORS.rare }, 
             'orangutini': { name: 'Orangutini ananasini', price: 15, img: 'image_704104.png', color: RARITY_COLORS.epic }, 
             
-            // Garama Case
             '67': { name: '67', price: 25, img: 'image_7093da.jpg', color: RARITY_COLORS.rare }, 
             'los67': { name: 'los 67', price: 50, img: 'image_709478.png', color: RARITY_COLORS.epic }, 
             'garama_madundung': { name: 'Garama & Madundung', price: 500, img: 'image_7097fa.jpg', color: RARITY_COLORS.mythic }, 
             
-            // Halloween Case
             'ketchuru': { name: 'Ketchuru and Musturu', price: 50, img: 'image_24960b.png', color: RARITY_COLORS.uncommon },
             'garama_hw': { name: 'Garama HW Version', price: 500, img: 'image_249a22.jpg', color: RARITY_COLORS.epic },
             'cash_or_card': { name: 'Cash or Card', price: 600, img: 'image_24a509.png', color: RARITY_COLORS.legendary },
 
-            // Rykavo Case
             'rico_dinero': { name: 'Rico Dinero', price: 2500, img: 'image_242967.jpg', color: RARITY_COLORS.uncommon },
             'dragon_cannelloni': { name: 'Dragon Cannelloni', price: 8000, img: 'image_248b7d.jpg', color: RARITY_COLORS.mythic },
             'skibidi_toilet': { name: 'Skibidi Toilet', price: 32000, img: 'image_248f9e.jpg', color: RARITY_COLORS.rare },
 
-            // Elephant Case
             'tirilikalika': { name: 'Tirilikalika', price: 18000, img: 'image_709fbc.jpg', color: RARITY_COLORS.covert }, 
             'johnpork': { name: 'John Pork', price: 90000, img: 'image_70a642.jpg', color: RARITY_COLORS.legendary }, 
             'strawberry': { name: 'Strawberry Elephant', price: 180000, img: 'image_70a702.png', color: RARITY_COLORS.legendary }
         };
 
         const CASES = {
+            'daily': { 
+                name: 'DailyCase', 
+                price: 0, 
+                img: 'Яркий лутбокс DailyCase с календарём.png', 
+                color: '#10b981', 
+                isDaily: true, 
+                loot: [
+                    { id: 'noob_pizza', chance: 75.0 }, 
+                    { id: 'orangutini', chance: 19.89999 }, 
+                    { id: 'garama_madundung', chance: 4.0 }, 
+                    { id: 'rico_dinero', chance: 0.1 }, 
+                    { id: 'strawberry', chance: 0.00001 }
+                ] 
+            },
             'noobini': { name: 'NoobiniCase', price: 10, img: 'image_7026e3.jpg', color: RARITY_COLORS.common, loot: [{ id: 'noob_pizza', chance: 70 }, { id: 'bobrito', chance: 25 }, { id: 'orangutini', chance: 5 }] },
             'garama': { name: 'GaramaCase', price: 250, img: 'Voxel GaramaCase Loot Box.png', color: RARITY_COLORS.epic, loot: [{ id: '67', chance: 70 }, { id: 'los67', chance: 25 }, { id: 'garama_madundung', chance: 5 }] },
             'halloween': { name: 'HalloweenCase', price: 250, img: 'image_14b147.jpg', color: '#f97316', loot: [{ id: 'ketchuru', chance: 85 }, { id: 'garama_hw', chance: 10 }, { id: 'cash_or_card', chance: 5 }] },
@@ -529,24 +504,13 @@ img[src*="netlify"] {
             'elephant': { name: 'ElephantCase', price: 3000, img: 'image_703589.jpg', color: RARITY_COLORS.covert, loot: [{ id: 'garama_madundung', chance: 70 }, { id: 'tirilikalika', chance: 25 }, { id: 'johnpork', chance: 4 }, { id: 'strawberry', chance: 1 }] }
         };
 
-        // Разрешенные предметы для вывода
         const WEEKLY_ITEMS = ['garama_madundung', 'johnpork', 'strawberry', 'dragon_cannelloni', 'skibidi_toilet'];
 
-        /**
-         * STATE MANAGEMENT
-         */
-        let balance = 0; 
+        let balance = parseInt(localStorage.getItem('bf_balance')) || (localStorage.getItem('bf_played_before_ultra') ? 0 : 500);
+        if(!localStorage.getItem('bf_played_before_ultra')) localStorage.setItem('bf_played_before_ultra', 'true');
+        
         let inventory = [];
-        
-        // Give 500 if new user for testing purposes
-        if(!localStorage.getItem('bf_played_before_ultra')) {
-            balance = 500;
-            localStorage.setItem('bf_played_before_ultra', 'true');
-        } else {
-            balance = parseInt(localStorage.getItem('bf_balance')) || 0;
-        }
-        
-        try { inventory = JSON.parse(localStorage.getItem('bf_inv')) || []; } catch(e) { inventory = []; }
+        try { inventory = JSON.parse(localStorage.getItem('bf_inv')) || []; } catch(e) {}
         
         let invSelectedIndices = new Set();
         let upgSelectedIndices = new Set();
@@ -554,6 +518,7 @@ img[src*="netlify"] {
         let isSpinning = false;
         let currentCaseId = null;
         let wonItemTemp = null;
+        let dailyTimerInt = null;
 
         function saveState() {
             localStorage.setItem('bf_balance', balance);
@@ -561,12 +526,8 @@ img[src*="netlify"] {
             updateUI();
         }
 
-        /**
-         * AUDIO ENGINE (WEB AUDIO API SYNTHESIZER)
-         */
         const AudioContext = window.AudioContext || window.webkitAudioContext;
         let actx = null;
-
         function initAudio() {
             if(!actx) actx = new AudioContext();
             if(actx.state === 'suspended') actx.resume();
@@ -577,19 +538,15 @@ img[src*="netlify"] {
                 initAudio();
                 const osc = actx.createOscillator();
                 const gain = actx.createGain();
-                osc.connect(gain);
-                gain.connect(actx.destination);
+                osc.connect(gain); gain.connect(actx.destination);
                 const now = actx.currentTime;
 
                 if(type === 'tick') {
-                    osc.type = 'sine';
-                    osc.frequency.setValueAtTime(800, now);
+                    osc.type = 'sine'; osc.frequency.setValueAtTime(800, now);
                     osc.frequency.exponentialRampToValueAtTime(100, now + 0.05);
-                    gain.gain.setValueAtTime(0.15, now);
-                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+                    gain.gain.setValueAtTime(0.15, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
                     osc.start(now); osc.stop(now + 0.05);
-                } 
-                else if(type === 'win') {
+                } else if(type === 'win') {
                     const chord = [523.25, 659.25, 783.99, 1046.50]; 
                     chord.forEach((freq, i) => {
                         const o = actx.createOscillator(); const g = actx.createGain();
@@ -599,111 +556,68 @@ img[src*="netlify"] {
                         g.gain.linearRampToValueAtTime(0.2, now + 0.05 + (i * 0.05));
                         g.gain.exponentialRampToValueAtTime(0.001, now + 2);
                         o.start(now); o.stop(now + 2);
-                    });
-                    return; 
-                }
-                else if(type === 'lose') {
-                    osc.type = 'sawtooth';
-                    osc.frequency.setValueAtTime(200, now);
+                    }); return;
+                } else if(type === 'lose') {
+                    osc.type = 'sawtooth'; osc.frequency.setValueAtTime(200, now);
                     osc.frequency.exponentialRampToValueAtTime(40, now + 0.8);
-                    gain.gain.setValueAtTime(0.2, now);
-                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+                    gain.gain.setValueAtTime(0.2, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
                     osc.start(now); osc.stop(now + 0.8);
-                }
-                else if(type === 'error') {
-                    osc.type = 'square';
-                    osc.frequency.setValueAtTime(150, now);
-                    gain.gain.setValueAtTime(0.1, now);
-                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+                } else if(type === 'error') {
+                    osc.type = 'square'; osc.frequency.setValueAtTime(150, now);
+                    gain.gain.setValueAtTime(0.1, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
                     osc.start(now); osc.stop(now + 0.2);
-                }
-                else if(type === 'click') {
-                    osc.type = 'sine';
-                    osc.frequency.setValueAtTime(600, now);
-                    gain.gain.setValueAtTime(0.05, now);
-                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+                } else if(type === 'click') {
+                    osc.type = 'sine'; osc.frequency.setValueAtTime(600, now);
+                    gain.gain.setValueAtTime(0.05, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
                     osc.start(now); osc.stop(now + 0.1);
                 }
-            } catch(e) {
-                console.log("Audio play failed, likely user hasn't interacted yet", e);
-            }
+            } catch(e) {}
         }
 
         document.querySelectorAll('.btn-press, .tab-btn').forEach(btn => {
-            btn.addEventListener('pointerdown', () => { if(!isSpinning) playSound('click'); });
+            btn.addEventListener('pointerdown', () => { if(!isSpinning && !btn.classList.contains('disabled')) playSound('click'); });
         });
 
-        /**
-         * UI COMPONENTS & HELPERS
-         */
-        
         function showToast(message, type = 'success') {
             if(type === 'error') playSound('error');
             const container = document.getElementById('toast-container');
             const toast = document.createElement('div');
             toast.className = `toast ${type}`;
-            
-            const icon = type === 'success' ? '✅' : '❌';
-            toast.innerHTML = `<span>${icon}</span> <div>${message}</div>`;
-            
+            toast.innerHTML = `<span>${type === 'success' ? '✅' : '❌'}</span> <div>${message}</div>`;
             container.appendChild(toast);
-            
-            setTimeout(() => {
-                toast.classList.add('toast-exit');
-                setTimeout(() => toast.remove(), 300);
-            }, 3000);
+            setTimeout(() => { toast.classList.add('toast-exit'); setTimeout(() => toast.remove(), 300); }, 3000);
         }
 
         function createParticles() {
             const container = document.getElementById('particles-container');
             container.innerHTML = '';
             const colors = ['#00f0ff', '#ff003c', '#ffb700', '#00ff66', '#a855f7'];
-            
             for(let i = 0; i < 80; i++) {
                 const p = document.createElement('div');
                 p.className = 'particle';
                 const size = Math.random() * 8 + 4;
-                p.style.width = `${size}px`;
-                p.style.height = `${size}px`;
+                p.style.width = `${size}px`; p.style.height = `${size}px`;
                 p.style.background = colors[Math.floor(Math.random() * colors.length)];
                 p.style.left = '50%'; p.style.top = '50%';
-                
                 const angle = Math.random() * Math.PI * 2;
                 const velocity = Math.random() * 200 + 50;
-                const tx = Math.cos(angle) * velocity;
-                const ty = Math.sin(angle) * velocity;
-                
+                const tx = Math.cos(angle) * velocity; const ty = Math.sin(angle) * velocity;
                 p.style.transform = `translate(-50%, -50%)`;
                 container.appendChild(p);
-                
-                if (p.animate) {
-                    p.animate([
-                        { transform: `translate(-50%, -50%) scale(1)`, opacity: 1 },
-                        { transform: `translate(calc(-50% + ${tx}px), calc(-50% + ${ty}px)) scale(0)`, opacity: 0 }
-                    ], {
-                        duration: Math.random() * 1000 + 1000,
-                        easing: 'cubic-bezier(0.1, 0.8, 0.3, 1)',
-                        fill: 'forwards'
-                    });
-                }
+                if (p.animate) p.animate([{ transform: `translate(-50%, -50%) scale(1)`, opacity: 1 }, { transform: `translate(calc(-50% + ${tx}px), calc(-50% + ${ty}px)) scale(0)`, opacity: 0 }], { duration: Math.random() * 1000 + 1000, easing: 'cubic-bezier(0.1, 0.8, 0.3, 1)', fill: 'forwards' });
             }
         }
 
-        function getImageUrl(imgName) {
-            return IMAGE_PATH_PREFIX + imgName;
-        }
+        function getImageUrl(imgName) { return IMAGE_PATH_PREFIX + imgName; }
 
         function updateUI() {
             document.getElementById('balance-display').innerText = balance.toLocaleString();
             document.getElementById('nav-inv-count').innerText = inventory.length;
             
-            if(currentCaseId) {
+            if(currentCaseId && !CASES[currentCaseId].isDaily) {
                 const btn = document.getElementById('btn-open-case');
-                if(balance >= CASES[currentCaseId].price && !isSpinning) {
-                    btn.classList.remove('opacity-50', 'pointer-events-none');
-                } else {
-                    btn.classList.add('opacity-50', 'pointer-events-none');
-                }
+                if(balance >= CASES[currentCaseId].price && !isSpinning) btn.classList.remove('disabled');
+                else btn.classList.add('disabled');
             }
             renderInventoryTab(); 
         }
@@ -725,15 +639,14 @@ img[src*="netlify"] {
         function closeModal(id) { 
             if(isSpinning && id === 'modal-case') return; 
             document.getElementById(id).classList.remove('open'); 
+            if(dailyTimerInt) clearInterval(dailyTimerInt);
         }
 
-        /**
-         * RENDERERS
-         */
         function renderCases() {
             const container = document.getElementById('cases-list-container');
             container.innerHTML = '';
             for(const [id, c] of Object.entries(CASES)) {
+                let priceText = c.isDaily ? `<span class="text-[#00ff66]">БЕСПЛАТНО</span>` : `${c.price.toLocaleString()} 💰`;
                 container.innerHTML += `
                     <div class="glass-panel p-5 rounded-[24px] flex items-center gap-5 btn-press cursor-pointer border-l-4 overflow-hidden relative group" style="border-left-color: ${c.color}" onclick="openCaseMenu('${id}')">
                         <div class="absolute inset-0 bg-gradient-to-r opacity-20 pointer-events-none group-hover:opacity-30 transition-opacity" style="background: linear-gradient(90deg, ${c.color}, transparent);"></div>
@@ -743,7 +656,7 @@ img[src*="netlify"] {
                         <div class="relative z-10">
                             <h2 class="text-xl font-black tracking-wide drop-shadow-md">${c.name}</h2>
                             <div class="inline-flex gap-1 text-yellow-400 bg-black/40 px-3 py-1.5 rounded-lg mt-2 font-bold text-xs border border-white/5 shadow-sm">
-                                ${c.price.toLocaleString()} 💰
+                                ${priceText}
                             </div>
                         </div>
                     </div>
@@ -753,9 +666,7 @@ img[src*="netlify"] {
 
         function renderInventoryTab() {
             const grid = document.getElementById('main-inv-grid');
-            grid.innerHTML = '';
-            let totalVal = 0;
-            
+            grid.innerHTML = ''; let totalVal = 0;
             if(inventory.length === 0) {
                 grid.innerHTML = '<div class="col-span-3 text-center text-gray-500 py-16 font-bold uppercase tracking-widest text-xs">Инвентарь пуст</div>';
             } else {
@@ -764,7 +675,6 @@ img[src*="netlify"] {
                     const itemData = ALL_ITEMS[invItem.id];
                     const isSel = invSelectedIndices.has(idx);
                     if(isSel) totalVal += itemData.price;
-                    
                     grid.innerHTML += `
                         <div onclick="toggleInvSelect(${idx})" class="glass-panel p-2 flex flex-col items-center justify-between rounded-2xl border-b-4 cursor-pointer transition-all ${isSel ? 'item-selected' : ''}" style="border-bottom-color: ${itemData.color}">
                             <div class="w-full flex justify-end mb-1">
@@ -780,9 +690,6 @@ img[src*="netlify"] {
             document.getElementById('inv-selected-val').innerText = totalVal.toLocaleString() + ' 💰';
         }
 
-        /**
-         * INVENTORY LOGIC
-         */
         function toggleInvSelect(idx) {
             playSound('click');
             if(invSelectedIndices.has(idx)) invSelectedIndices.delete(idx);
@@ -792,110 +699,56 @@ img[src*="netlify"] {
 
         function sellSelectedItems() {
             if(invSelectedIndices.size === 0) { showToast('Выберите предметы для продажи', 'error'); return; }
-            let earned = 0;
-            let indices = Array.from(invSelectedIndices).sort((a,b)=>b-a); 
-            indices.forEach(idx => {
-                earned += ALL_ITEMS[inventory[idx].id].price;
-                inventory.splice(idx, 1);
-            });
-            balance += earned;
-            invSelectedIndices.clear();
-            saveState();
+            let earned = 0; let indices = Array.from(invSelectedIndices).sort((a,b)=>b-a); 
+            indices.forEach(idx => { earned += ALL_ITEMS[inventory[idx].id].price; inventory.splice(idx, 1); });
+            balance += earned; invSelectedIndices.clear(); saveState();
             showToast(`Успешно продано на ${earned.toLocaleString()} 💰`, 'success');
         }
 
-        /**
-         * TELEGRAM FLOWS & PROMOCODES
-         */
         function submitDeposit() {
             const nick = document.getElementById('dep-nick').value.trim();
             const itemName = document.getElementById('dep-item').value.trim();
-            
             if(!nick || !itemName) { showToast('Заполните все поля', 'error'); return; }
-            
             let data = { action: 'deposit', nick: nick, item: itemName };
-            
             try { if(tg) tg.sendData(JSON.stringify(data)); } catch(e){}
-            
             showToast("Запрос отправлен. Ожидайте трейд.", 'success');
-            closeModal('modal-deposit');
-            document.getElementById('dep-nick').value = '';
-            document.getElementById('dep-item').value = '';
+            closeModal('modal-deposit'); document.getElementById('dep-nick').value = ''; document.getElementById('dep-item').value = '';
         }
 
         function submitWithdraw() {
             if(invSelectedIndices.size === 0) { showToast("Выберите предметы в инвентаре!", 'error'); return; }
-            
             const nick = document.getElementById('wit-nick').value.trim();
             if(!nick) { showToast('Укажите никнейм', 'error'); return; }
 
-            let invalid = false;
-            let selectedItemData = [];
-            
+            let invalid = false; let selectedItemData = [];
             invSelectedIndices.forEach(idx => {
-                let id = inventory[idx].id;
-                selectedItemData.push(ALL_ITEMS[id].name);
+                let id = inventory[idx].id; selectedItemData.push(ALL_ITEMS[id].name);
                 if(!WEEKLY_ITEMS.includes(id)) invalid = true;
             });
-
-            if(invalid) {
-                showToast("Некоторые предметы нельзя вывести на этой неделе.", 'error');
-                return;
-            }
+            if(invalid) { showToast("Некоторые предметы нельзя вывести на этой неделе.", 'error'); return; }
 
             let data = { action: 'withdraw', nick: nick, items: selectedItemData };
-            
             let indices = Array.from(invSelectedIndices).sort((a,b)=>b-a);
             indices.forEach(idx => inventory.splice(idx, 1));
-            invSelectedIndices.clear();
-            saveState();
+            invSelectedIndices.clear(); saveState();
 
             try { if(tg) tg.sendData(JSON.stringify(data)); } catch(e){}
-            
             showToast("Запрос на вывод отправлен!", 'success');
-            closeModal('modal-withdraw');
-            document.getElementById('wit-nick').value = '';
+            closeModal('modal-withdraw'); document.getElementById('wit-nick').value = '';
         }
 
         function activatePromo() {
             const code = document.getElementById('promo-input').value.trim().toUpperCase();
             if(!code) return;
             
-            // Загружаем список уже использованных пользователем кодов
             let usedPromos = JSON.parse(localStorage.getItem('bf_used_promos')) || [];
 
-            // Проверка 1: Исчерпан ли лимит (Код в списке неактивных)
-            if (EXPIRED_PROMOS.includes(code)) {
-                showToast("Активации промокода исчерпаны!", 'error');
-                return;
-            }
-
-            // Проверка 2: Использовал ли уже этот код текущий игрок
             if (usedPromos.includes(code)) {
-                showToast("Вы уже активировали этот промокод (только 1 раз)!", 'error');
+                showToast("Вы уже активировали этот ключ!", 'error');
                 return;
             }
 
-            // Проверка 3: Существует ли код в активной базе
-            if (VALID_PROMOS[code]) {
-                let reward = VALID_PROMOS[code].coins;
-                balance += reward;
-                
-                // Записываем код как использованный
-                usedPromos.push(code);
-                localStorage.setItem('bf_used_promos', JSON.stringify(usedPromos));
-                
-                saveState();
-                showToast(`Активировано! +${reward.toLocaleString()} 💰`, 'success');
-                playSound('win');
-                createParticles();
-                
-                // Опционально: уведомляем бота об успешной активации (чтобы логировать в админке)
-                let data = { action: 'promo_success', code: code, reward: reward };
-                try { if(tg) tg.sendData(JSON.stringify(data)); } catch(e){}
-                
-            } else if(code.startsWith('DEV-')) {
-                // Динамические коды разработчика на любую сумму
+            if(code.startsWith('DEV-')) {
                 let amount = parseInt(code.split('-')[1]);
                 if(amount > 0) {
                     balance += amount;
@@ -903,28 +756,23 @@ img[src*="netlify"] {
                     localStorage.setItem('bf_used_promos', JSON.stringify(usedPromos));
                     saveState();
                     showToast(`Код разработчика применен! +${amount.toLocaleString()} 💰`, 'success');
-                    playSound('win');
+                    playSound('win'); createParticles();
                 } else {
-                    showToast("Данного промокода не существует!", 'error');
+                    showToast("Неверный формат ключа DEV!", 'error');
                 }
             } else {
-                showToast("Данного промокода не существует!", 'error');
+                showToast("Сначала активируйте ваш код в боте, а сюда впишите выданный ключ DEV-!", 'error');
             }
             
             closeModal('modal-promo');
             document.getElementById('promo-input').value = '';
         }
 
-        /**
-         * UPGRADER LOGIC
-         */
+        // UPGRADER
         function openUpgraderInvMulti() {
-            if(isSpinning) return;
-            playSound('click');
+            if(isSpinning) return; playSound('click');
             const grid = document.getElementById('multi-select-grid');
-            grid.innerHTML = '';
-            upgSelectedIndices.clear();
-            document.getElementById('multi-total').innerText = '0';
+            grid.innerHTML = ''; upgSelectedIndices.clear(); document.getElementById('multi-total').innerText = '0';
             
             if(inventory.length === 0) {
                 grid.innerHTML = '<div class="col-span-3 text-center text-gray-500 py-16 text-sm font-bold tracking-widest uppercase">Инвентарь пуст</div>';
@@ -933,9 +781,7 @@ img[src*="netlify"] {
                     const itemData = ALL_ITEMS[invItem.id];
                     grid.innerHTML += `
                         <div id="umsg-${idx}" onclick="toggleUpgSelect(${idx})" class="glass-panel p-2 flex flex-col items-center justify-between rounded-xl border-b-4 cursor-pointer transition-all" style="border-bottom-color: ${itemData.color}">
-                            <div class="w-full flex justify-end mb-1">
-                                <div class="w-3 h-3 rounded-full border border-white/20 transition-colors pointer-events-none" id="umsg-chk-${idx}"></div>
-                            </div>
+                            <div class="w-full flex justify-end mb-1"><div class="w-3 h-3 rounded-full border border-white/20 transition-colors pointer-events-none" id="umsg-chk-${idx}"></div></div>
                             <img src="${getImageUrl(itemData.img)}" class="h-12 object-contain mb-1 pointer-events-none drop-shadow-md" onerror="this.classList.add('error-image');">
                             <div class="text-[8px] text-center font-bold truncate w-full text-gray-300 pointer-events-none">${itemData.name}</div>
                             <div class="text-[10px] text-yellow-400 font-black pointer-events-none bg-black/40 px-1 rounded mt-1">${itemData.price.toLocaleString()}</div>
@@ -947,22 +793,13 @@ img[src*="netlify"] {
         }
 
         function toggleUpgSelect(idx) {
-            playSound('click');
-            const el = document.getElementById(`umsg-${idx}`);
-            const chk = document.getElementById(`umsg-chk-${idx}`);
-            
+            playSound('click'); const el = document.getElementById(`umsg-${idx}`); const chk = document.getElementById(`umsg-chk-${idx}`);
             if(upgSelectedIndices.has(idx)) {
-                upgSelectedIndices.delete(idx);
-                el.classList.remove('item-selected');
-                chk.classList.remove('bg-cyan-400', 'border-cyan-400');
+                upgSelectedIndices.delete(idx); el.classList.remove('item-selected'); chk.classList.remove('bg-cyan-400', 'border-cyan-400');
             } else {
-                upgSelectedIndices.add(idx);
-                el.classList.add('item-selected');
-                chk.classList.add('bg-cyan-400', 'border-cyan-400');
+                upgSelectedIndices.add(idx); el.classList.add('item-selected'); chk.classList.add('bg-cyan-400', 'border-cyan-400');
             }
-            
-            let total = 0;
-            upgSelectedIndices.forEach(i => total += ALL_ITEMS[inventory[i].id].price);
+            let total = 0; upgSelectedIndices.forEach(i => total += ALL_ITEMS[inventory[i].id].price);
             document.getElementById('multi-total').innerText = total.toLocaleString();
         }
 
@@ -971,35 +808,26 @@ img[src*="netlify"] {
             if(upgSelectedIndices.size === 0) {
                 document.getElementById('upg-my-items').innerHTML = `<div class="w-12 h-12 rounded-full border-2 border-dashed border-gray-600 flex items-center justify-center text-gray-500 text-2xl mt-2">+</div>`;
             } else {
-                let html = '';
-                let total = 0;
+                let html = ''; let total = 0;
                 upgSelectedIndices.forEach(i => {
-                    let item = ALL_ITEMS[inventory[i].id];
-                    total += item.price;
+                    let item = ALL_ITEMS[inventory[i].id]; total += item.price;
                     html += `<img src="${getImageUrl(item.img)}" class="h-8 w-8 object-contain drop-shadow-md -ml-2 first:ml-0" onerror="this.classList.add('error-image');">`;
                 });
                 html += `<div class="w-full text-yellow-400 font-black text-xs mt-3 bg-black/50 rounded-lg py-1 px-2 border border-white/5 shadow-inner">${total.toLocaleString()} 💰</div>`;
                 document.getElementById('upg-my-items').innerHTML = `<div class="flex items-center justify-center pt-2 pl-2">${html}</div>`;
             }
-            closeModal('modal-multi-select');
-            updateUpgradeMath();
+            closeModal('modal-multi-select'); updateUpgradeMath();
         }
 
         function showUpgraderTargets() {
-            if(isSpinning) return;
-            playSound('click');
-            const grid = document.getElementById('target-select-grid');
-            grid.innerHTML = '';
-
+            if(isSpinning) return; playSound('click');
+            const grid = document.getElementById('target-select-grid'); grid.innerHTML = '';
             if(upgSelectedIndices.size === 0) {
                 grid.innerHTML = '<div class="col-span-2 text-center text-red-400 py-16 text-sm font-bold uppercase tracking-widest">Выберите ставку слева</div>';
-                openModal('modal-target-select');
-                return;
+                openModal('modal-target-select'); return;
             }
             
-            let myTotal = 0;
-            upgSelectedIndices.forEach(i => myTotal += ALL_ITEMS[inventory[i].id].price);
-            
+            let myTotal = 0; upgSelectedIndices.forEach(i => myTotal += ALL_ITEMS[inventory[i].id].price);
             let added = false;
             for(let key in ALL_ITEMS) {
                 let targetData = ALL_ITEMS[key];
@@ -1019,60 +847,46 @@ img[src*="netlify"] {
         }
 
         function selectTargetItem(id) {
-            playSound('click');
-            upgTargetId = id;
-            const item = ALL_ITEMS[id];
+            playSound('click'); upgTargetId = id; const item = ALL_ITEMS[id];
             document.getElementById('upg-target-item').innerHTML = `
                 <img src="${getImageUrl(item.img)}" class="h-16 object-contain drop-shadow-[0_10px_15px_rgba(0,0,0,0.5)] mt-1" onerror="this.classList.add('error-image');">
                 <div class="text-yellow-400 font-black text-xs mt-3 bg-black/50 rounded-lg py-1 px-3 border border-white/5 shadow-inner">${item.price.toLocaleString()} 💰</div>
             `;
-            closeModal('modal-target-select');
-            updateUpgradeMath();
+            closeModal('modal-target-select'); updateUpgradeMath();
         }
 
         function updateUpgradeMath() {
-            const btn = document.getElementById('btn-do-upgrade');
-            const chanceTxt = document.getElementById('upgrade-chance');
-            const wheel = document.getElementById('upgrader-wheel');
-            const arrowCont = document.getElementById('arrow-container');
+            const btn = document.getElementById('btn-do-upgrade'); const chanceTxt = document.getElementById('upgrade-chance');
+            const wheel = document.getElementById('upgrader-wheel'); const arrowCont = document.getElementById('arrow-container');
 
             if(upgSelectedIndices.size > 0 && upgTargetId !== null) {
-                let myTotal = 0;
-                upgSelectedIndices.forEach(i => myTotal += ALL_ITEMS[inventory[i].id].price);
+                let myTotal = 0; upgSelectedIndices.forEach(i => myTotal += ALL_ITEMS[inventory[i].id].price);
                 let targetPrice = ALL_ITEMS[upgTargetId].price;
                 
                 let chance = (myTotal / targetPrice) * 100;
-                if(chance > 95) chance = 95;
-                if(chance < 0.1) chance = 0.1;
+                if(chance > 95) chance = 95; if(chance < 0.1) chance = 0.1;
                 
                 chanceTxt.innerText = `${chance.toFixed(2)}%`;
                 chanceTxt.className = `text-4xl font-black mt-1 drop-shadow-[0_0_15px_rgba(255,255,255,0.1)] ${chance < 20 ? 'text-[#ff003c]' : 'text-[#00f0ff]'}`;
-                
                 wheel.style.background = `conic-gradient(#00f0ff 0% ${chance}%, #ff003c ${chance}% 100%)`;
-                arrowCont.style.transition = 'none';
-                arrowCont.style.transform = 'rotate(0deg)'; 
-                btn.classList.remove('opacity-50', 'pointer-events-none');
+                arrowCont.style.transition = 'none'; arrowCont.style.transform = 'rotate(0deg)'; 
+                btn.classList.remove('disabled');
             } else {
-                chanceTxt.innerText = `0%`;
-                chanceTxt.className = 'text-4xl font-black text-gray-600 mt-1';
+                chanceTxt.innerText = `0%`; chanceTxt.className = 'text-4xl font-black text-gray-600 mt-1';
                 wheel.style.background = `conic-gradient(#ff003c 0% 100%)`;
-                arrowCont.style.transition = 'none';
-                arrowCont.style.transform = 'rotate(0deg)';
-                btn.classList.add('opacity-50', 'pointer-events-none');
+                arrowCont.style.transition = 'none'; arrowCont.style.transform = 'rotate(0deg)';
+                btn.classList.add('disabled');
             }
         }
 
         function startUpgrade() {
             if(isSpinning || upgSelectedIndices.size === 0 || upgTargetId === null) return;
             
-            let myTotal = 0;
-            upgSelectedIndices.forEach(i => myTotal += ALL_ITEMS[inventory[i].id].price);
+            let myTotal = 0; upgSelectedIndices.forEach(i => myTotal += ALL_ITEMS[inventory[i].id].price);
             let targetPrice = ALL_ITEMS[upgTargetId].price;
+            let chance = (myTotal / targetPrice) * 100; if(chance > 95) chance = 95;
             
-            let chance = (myTotal / targetPrice) * 100;
-            if(chance > 95) chance = 95;
-            
-            document.getElementById('btn-do-upgrade').classList.add('opacity-50', 'pointer-events-none');
+            document.getElementById('btn-do-upgrade').classList.add('disabled');
             isSpinning = true;
             
             let indices = Array.from(upgSelectedIndices).sort((a,b)=>b-a);
@@ -1081,52 +895,35 @@ img[src*="netlify"] {
             
             const isWin = (Math.random() * 100) <= chance;
             const arrowCont = document.getElementById('arrow-container');
-            
             let targetDegree = 0;
-            if(isWin) {
-                targetDegree = Math.random() * (chance * 3.6);
-            } else {
-                let redStart = chance * 3.6;
-                targetDegree = redStart + (Math.random() * (360 - redStart));
-            }
+            if(isWin) targetDegree = Math.random() * (chance * 3.6);
+            else { let redStart = chance * 3.6; targetDegree = redStart + (Math.random() * (360 - redStart)); }
             
             const totalRotation = (360 * 5) + targetDegree; 
-            
             arrowCont.style.transition = 'transform 5s cubic-bezier(0.1, 0.9, 0.15, 1)';
             arrowCont.style.transform = `rotate(${totalRotation}deg)`;
             
             let tickInt = setInterval(() => playSound('tick'), 180);
             setTimeout(() => clearInterval(tickInt), 2000);
-            setTimeout(() => {
-                let tickInt2 = setInterval(() => playSound('tick'), 350);
-                setTimeout(() => clearInterval(tickInt2), 2000);
-            }, 2000);
-            setTimeout(() => {
-                let tickInt3 = setInterval(() => playSound('tick'), 700);
-                setTimeout(() => clearInterval(tickInt3), 1000);
-            }, 4000);
+            setTimeout(() => { let tickInt2 = setInterval(() => playSound('tick'), 350); setTimeout(() => clearInterval(tickInt2), 2000); }, 2000);
+            setTimeout(() => { let tickInt3 = setInterval(() => playSound('tick'), 700); setTimeout(() => clearInterval(tickInt3), 1000); }, 4000);
 
             setTimeout(() => { finishUpgrade(isWin); }, 5500);
         }
 
         function finishUpgrade(isWin) {
             isSpinning = false;
-            const title = document.getElementById('ur-title');
-            const img = document.getElementById('ur-img');
-            const desc = document.getElementById('ur-desc');
-            const glow = document.getElementById('ur-bg-glow');
+            const title = document.getElementById('ur-title'); const img = document.getElementById('ur-img');
+            const desc = document.getElementById('ur-desc'); const glow = document.getElementById('ur-bg-glow');
             
             if(isWin) {
-                playSound('win');
-                createParticles();
+                playSound('win'); createParticles();
                 title.innerText = "УСПЕХ!"; 
                 title.className = "text-5xl font-black text-[#00f0ff] mb-6 drop-shadow-[0_0_20px_rgba(0,240,255,0.8)] relative z-10 tracking-widest";
                 glow.className = "absolute top-0 left-1/2 -translate-x-1/2 w-full h-1/2 bg-[#00f0ff]/30 blur-[80px] pointer-events-none z-0";
-                
                 const winData = ALL_ITEMS[upgTargetId];
                 img.src = getImageUrl(winData.img);
                 desc.innerHTML = `Вы получили<br><b class="text-white text-2xl mt-2 inline-block">${winData.name}</b>`;
-                
                 inventory.push({ id: upgTargetId, uid: Date.now() });
                 saveState();
             } else {
@@ -1134,36 +931,79 @@ img[src*="netlify"] {
                 title.innerText = "ПРОИГРЫШ"; 
                 title.className = "text-5xl font-black text-[#ff003c] mb-6 drop-shadow-[0_0_20px_rgba(255,0,60,0.8)] relative z-10 tracking-widest";
                 glow.className = "absolute top-0 left-1/2 -translate-x-1/2 w-full h-1/2 bg-[#ff003c]/30 blur-[80px] pointer-events-none z-0";
-                
                 img.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23ff003c'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 18L18 6M6 6l12 12'%3E%3C/path%3E%3C/svg%3E";
                 desc.innerHTML = `Ваши предметы сгорели`;
             }
             
-            upgSelectedIndices.clear(); 
-            upgTargetId = null;
+            upgSelectedIndices.clear(); upgTargetId = null;
             document.getElementById('upg-my-items').innerHTML = `<div class="w-12 h-12 rounded-full border-2 border-dashed border-gray-600 flex items-center justify-center text-gray-500 text-2xl mt-2">+</div>`;
             document.getElementById('upg-target-item').innerHTML = `<div class="w-12 h-12 rounded-full border-2 border-dashed border-gray-600 flex items-center justify-center text-gray-500 text-2xl mt-2">+</div>`;
             
-            setTimeout(updateUpgradeMath, 500);
-            openModal('modal-upg-res');
+            setTimeout(updateUpgradeMath, 500); openModal('modal-upg-res');
         }
 
-        /**
-         * CASE LOGIC
-         */
+        // DAILY CASE LOGIC
+        function updateDailyCaseButton() {
+            const btn = document.getElementById('btn-open-case');
+            const isSubbed = localStorage.getItem('bf_daily_sub');
+            const lastOpened = localStorage.getItem('bf_daily_time');
+            const now = Date.now();
+
+            if (!isSubbed) {
+                btn.innerHTML = 'ПОДПИСАТЬСЯ НА КАНАЛ';
+                btn.classList.remove('disabled');
+                btn.onclick = () => {
+                    playSound('click');
+                    if(tg) tg.openTelegramLink('https://t.me/BrainflipNews');
+                    else window.open('https://t.me/BrainflipNews', '_blank');
+                    localStorage.setItem('bf_daily_sub', 'true');
+                    showToast('Спасибо за подписку! Теперь кейс доступен.', 'success');
+                    setTimeout(() => { openCaseMenu('daily'); }, 2000);
+                };
+                return;
+            }
+
+            if (lastOpened && (now - parseInt(lastOpened)) < 24 * 60 * 60 * 1000) {
+                btn.classList.add('disabled');
+                btn.onclick = null;
+                
+                let diff = (24 * 60 * 60 * 1000) - (now - parseInt(lastOpened));
+                let h = Math.floor(diff / (1000 * 60 * 60));
+                let m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                let s = Math.floor((diff % (1000 * 60)) / 1000);
+                btn.innerHTML = `ОЖИДАНИЕ ${h}Ч ${m}М ${s}С`;
+            } else {
+                btn.classList.remove('disabled');
+                btn.innerHTML = 'ОТКРЫТЬ БЕСПЛАТНО';
+                btn.onclick = () => {
+                    clearInterval(dailyTimerInt);
+                    rollCase();
+                };
+            }
+        }
+
+        // CASE LOGIC
         function openCaseMenu(id) {
-            playSound('click');
-            currentCaseId = id; 
-            const c = CASES[id];
+            playSound('click'); currentCaseId = id; const c = CASES[id];
             
             document.getElementById('mc-title').innerText = c.name;
             document.getElementById('mc-img').src = getImageUrl(c.img);
-            document.getElementById('mc-price').innerText = c.price.toLocaleString();
+            
+            if (c.isDaily) {
+                document.getElementById('mc-price').innerHTML = '<span class="text-[#00ff66]">БЕСПЛАТНО</span>';
+                if(dailyTimerInt) clearInterval(dailyTimerInt);
+                updateDailyCaseButton();
+                dailyTimerInt = setInterval(updateDailyCaseButton, 1000);
+            } else {
+                if(dailyTimerInt) clearInterval(dailyTimerInt);
+                document.getElementById('mc-price').innerHTML = c.price.toLocaleString() + ' 💰';
+                document.getElementById('btn-open-case').onclick = rollCase;
+                updateUI();
+            }
             
             document.getElementById('roulette-box').classList.add('hidden');
             document.getElementById('mc-img').classList.remove('hidden');
             
-            updateUI();
             openModal('modal-case');
         }
 
@@ -1178,28 +1018,30 @@ img[src*="netlify"] {
         }
 
         function rollCase() {
-            if(balance < CASES[currentCaseId].price || isSpinning) return;
+            const c = CASES[currentCaseId];
+            if(!c.isDaily && balance < c.price) return;
+            if(isSpinning) return;
             
-            balance -= CASES[currentCaseId].price; 
-            saveState(); 
+            if (c.isDaily) {
+                localStorage.setItem('bf_daily_time', Date.now());
+            } else {
+                balance -= c.price; 
+                saveState(); 
+            }
+            
             isSpinning = true;
-            
-            document.getElementById('btn-open-case').classList.add('opacity-50', 'pointer-events-none');
+            document.getElementById('btn-open-case').classList.add('disabled');
             document.getElementById('mc-img').classList.add('hidden');
             document.getElementById('roulette-box').classList.remove('hidden');
             
             const track = document.getElementById('roulette-track');
-            track.innerHTML = ''; 
-            track.style.transition = 'none'; 
-            track.style.transform = 'translateX(0)';
+            track.innerHTML = ''; track.style.transition = 'none'; track.style.transform = 'translateX(0)';
             
-            const caseLoot = CASES[currentCaseId].loot;
-            const totalItems = 70; 
-            const winIndex = 63; 
+            const caseLoot = c.loot;
+            const totalItems = 70; const winIndex = 63; 
             const winItemId = getLootArrayItemId(caseLoot);
             
-            wonItemTemp = ALL_ITEMS[winItemId]; 
-            wonItemTemp.baseId = winItemId;
+            wonItemTemp = ALL_ITEMS[winItemId]; wonItemTemp.baseId = winItemId;
 
             for(let i=0; i<totalItems; i++) {
                 let id = (i === winIndex) ? winItemId : getLootArrayItemId(caseLoot);
@@ -1212,7 +1054,6 @@ img[src*="netlify"] {
             }
             
             track.offsetHeight; 
-
             const itemWidth = 132; 
             const stopPos = (winIndex * itemWidth) - (document.getElementById('roulette-box').offsetWidth / 2) + (itemWidth / 2);
             const jitter = (Math.random() * 80) - 40; 
@@ -1233,24 +1074,17 @@ img[src*="netlify"] {
                 let currentItemIndex = Math.floor(currentPos / itemWidth);
                 
                 if(currentItemIndex > lastTick) {
-                    playSound('tick');
-                    lastTick = currentItemIndex;
+                    playSound('tick'); lastTick = currentItemIndex;
                 }
                 
-                if(progress < 1) {
-                    requestAnimationFrame(animationLoop);
-                } else {
-                    setTimeout(showWinScreen, 800);
-                }
+                if(progress < 1) requestAnimationFrame(animationLoop);
+                else setTimeout(showWinScreen, 800);
             }
             requestAnimationFrame(animationLoop);
         }
 
         function showWinScreen() {
-            isSpinning = false;
-            closeModal('modal-case');
-            playSound('win');
-            createParticles();
+            isSpinning = false; closeModal('modal-case'); playSound('win'); createParticles();
             
             document.getElementById('win-img').src = getImageUrl(wonItemTemp.img);
             document.getElementById('win-name').innerText = wonItemTemp.name;
@@ -1258,28 +1092,21 @@ img[src*="netlify"] {
             document.getElementById('win-price').innerText = `${wonItemTemp.price.toLocaleString()} 💰`;
             
             document.getElementById('btn-win-sell').onclick = () => {
-                playSound('click');
-                balance += wonItemTemp.price; 
-                saveState(); 
+                playSound('click'); balance += wonItemTemp.price; saveState(); 
                 showToast(`Продано за ${wonItemTemp.price.toLocaleString()} 💰`, 'success');
                 closeModal('modal-win'); 
             };
             
             document.getElementById('btn-win-keep').onclick = () => {
-                playSound('click');
-                inventory.push({ id: wonItemTemp.baseId, uid: Date.now() }); 
-                saveState(); 
+                playSound('click'); inventory.push({ id: wonItemTemp.baseId, uid: Date.now() }); saveState(); 
                 showToast('Добавлено в инвентарь', 'success');
                 closeModal('modal-win'); 
             };
-            
             openModal('modal-win');
         }
 
         // INIT
-        renderCases();
-        updateUI();
-
+        renderCases(); updateUI();
     </script>
 </body>
 </html>

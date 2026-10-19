@@ -1,0 +1,22 @@
+{
+    "START1000": {
+        "limit": 1000,
+        "reward": 1000
+    },
+    "BRAINFLIP2026": {
+        "limit": 500,
+        "reward": 2500
+    },
+    "ULTRAMODE": {
+        "limit": 100,
+        "reward": 5000
+    },
+    "MEGASECRET": {
+        "limit": 10,
+        "reward": 15000
+    },
+    "ТЕСТ123": {
+        "limit": 1,
+        "reward": 1000000
+    }
+}
