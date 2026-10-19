@@ -1,5 +1,5 @@
 import telebot
-from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
+from telebot.types import ReplyKeyboardMarkup, KeyboardButton, WebAppInfo
 import json
 import os
 import random
@@ -7,18 +7,20 @@ import random
 # ==========================================
 # КОНФИГУРАЦИЯ БОТА
 # ==========================================
-TOKEN = '8876455639:AAExE0fIIY99UXIC2bg42WNUd9-plPtbpfk'
+TOKEN = '8876455639:AAHQPFddKapRcF2TBjM5UpDsEM45QpbQcRg'
 bot = telebot.TeleBot(TOKEN)
 
 ADMIN_PASS = "Самир123"
 
-# Абсолютные пути к папке скрипта, чтобы избежать ошибок Permission denied
+# ВАЖНО: Вставьте сюда ссылку на ваш сайт, чтобы заявки начали приходить!
+WEBAPP_URL = "https://ВАШ-САЙТ.netlify.app"
+
+# Абсолютные пути к папке скрипта (защита от ошибки Permission denied)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 PROMOS_FILE = os.path.join(BASE_DIR, 'promos.json')
 USERS_FILE = os.path.join(BASE_DIR, 'users.json')
 REQUESTS_FILE = os.path.join(BASE_DIR, 'requests.json')
 
-# Базовые промокоды
 DEFAULT_PROMOS = {
     "START1000": {"limit": 1000, "reward": 1000},
     "BRAINFLIP2026": {"limit": 500, "reward": 2500},
@@ -53,27 +55,27 @@ def get_user(user_id):
     return users_db[uid]
 
 # ==========================================
-# ОСНОВНЫЕ КОМАНДЫ ДЛЯ ИГРОКОВ
+# ОСНОВНЫЕ КОМАНДЫ (ИГРА И ПРОМОКОДЫ)
 # ==========================================
 @bot.message_handler(commands=['start'])
 def start_command(message):
     text = (
         "👋 <b>Привет! Добро пожаловать в BrainFlip!</b> 🧠\n\n"
-        "Здесь ты сможешь прокачать своих брейнротов в <i>Steal a brainrot</i>! 🚀\n"
-        "Испытай удачу, делай апгрейды и собирай самую редкую коллекцию. 🎰💸\n\n"
-        "👉 Чтобы начать прокачивать брейнротов, нажми на голубую кнопку <b>«Играть»</b> внизу экрана, чтобы открыть Miniapp."
+        "Здесь ты сможешь прокачать своих брейнротов!\n"
+        "👇 <b>Нажми на кнопку «🚀 Играть» внизу экрана, чтобы открыть игру.</b>"
     )
     
-    markup = InlineKeyboardMarkup(row_width=1)
-    btn_promo = InlineKeyboardButton("🎁 Активировать Промокод", callback_data="enter_promo")
-    btn_news = InlineKeyboardButton("📰 Новости", url="https://t.me/BrainflipNews")
-    markup.add(btn_promo, btn_news)
+    # ИСПОЛЬЗУЕМ НИЖНЮЮ КЛАВИАТУРУ, ЧТОБЫ РАБОТАЛ tg.sendData (Заявки)
+    markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
+    btn_play = KeyboardButton("🚀 Играть", web_app=WebAppInfo(url=WEBAPP_URL))
+    btn_promo = KeyboardButton("🎁 Ввести промокод")
+    markup.add(btn_play, btn_promo)
     
     bot.send_message(message.chat.id, text, parse_mode='HTML', reply_markup=markup)
 
-@bot.callback_query_handler(func=lambda call: call.data == "enter_promo")
-def promo_callback(call):
-    msg = bot.send_message(call.message.chat.id, "🎟 <b>Введи промокод:</b>\n<i>(Отправь его мне следующим сообщением)</i>", parse_mode='HTML')
+@bot.message_handler(func=lambda message: message.text == "🎁 Ввести промокод")
+def promo_request(message):
+    msg = bot.send_message(message.chat.id, "🎟 <b>Введи промокод:</b>\n<i>(Отправь его мне следующим сообщением)</i>", parse_mode='HTML')
     bot.register_next_step_handler(msg, process_promo)
 
 def process_promo(message):
@@ -88,11 +90,11 @@ def process_promo(message):
     promo_info = promos_db[code]
 
     if code in user["used_promos"]:
-        bot.send_message(message.chat.id, "⚠️ <b>Ошибка:</b> Ты уже активировал этот промокод! Его можно использовать только 1 раз.", parse_mode='HTML')
+        bot.send_message(message.chat.id, "⚠️ <b>Ошибка:</b> Ты уже активировал этот промокод!", parse_mode='HTML')
         return
 
     if promo_info["limit"] <= 0:
-        bot.send_message(message.chat.id, "⏳ <b>Ошибка:</b> Активации данного промокода исчерпаны.", parse_mode='HTML')
+        bot.send_message(message.chat.id, "⏳ <b>Ошибка:</b> Активации исчерпаны.", parse_mode='HTML')
         return
 
     promo_info["limit"] -= 1
@@ -104,14 +106,14 @@ def process_promo(message):
     bot.send_message(
         message.chat.id, 
         f"✅ <b>Промокод успешно проверен!</b>\n\n"
-        f"🎁 Твоя награда: <b>{promo_info['reward']} 💰</b>\n\n"
-        f"<i>💡 Зайди в игру, нажми «КОДЫ» и введи этот сгенерированный ключ разработчика, чтобы монеты зачислились на баланс:</i>\n\n"
+        f"🎁 Награда: <b>{promo_info['reward']} 💰</b>\n\n"
+        f"<i>💡 Зайди в игру, нажми «КОДЫ» и введи этот DEV-ключ, чтобы монеты зачислились:</i>\n\n"
         f"<code>DEV-{promo_info['reward']}</code>", 
         parse_mode='HTML'
     )
 
 # ==========================================
-# ОБРАБОТКА ДАННЫХ ИЗ WEBAPP (ЗАЯВКИ)
+# ОБРАБОТКА ДАННЫХ ИЗ ИГРЫ (ЗАЯВКИ)
 # ==========================================
 @bot.message_handler(content_types=['web_app_data'])
 def web_app_data(message):
@@ -145,7 +147,7 @@ def web_app_data(message):
         bot.send_message(message.chat.id, "❌ Произошла ошибка при обработке данных из игры.")
 
 # ==========================================
-# СИСТЕМА АДМИН-КОМАНД
+# АДМИН-КОМАНДЫ (ИСПРАВЛЕН БАГ 400 HTML)
 # ==========================================
 @bot.message_handler(func=lambda message: message.text.startswith(f"{ADMIN_PASS} !"))
 def admin_commands(message):
@@ -157,7 +159,6 @@ def admin_commands(message):
             
         command = parts[0].lower()
 
-        # 1. КОМАНДА: !check
         if command == "!check":
             if not requests_db:
                 bot.send_message(message.chat.id, "✅ <b>Админ-панель:</b> Активных заявок нет.", parse_mode="HTML")
@@ -171,15 +172,13 @@ def admin_commands(message):
                     text += f"🔴 <b>ВЫВОД</b> | ID: <code>{req_id}</code>\n👤 Ник: {req['nick']}\n📦 Предметы: {req['items']}\n〰️〰️〰️\n"
             bot.send_message(message.chat.id, text, parse_mode="HTML")
 
-        # 2. КОМАНДА: !use <ник>
         elif command == "!use":
             if len(parts) >= 2:
                 nick = parts[1]
                 bot.send_message(message.chat.id, f"⚙️ Команда !use применена к игроку: <b>{nick}</b>", parse_mode="HTML")
             else:
-                bot.send_message(message.chat.id, f"❌ Использование: <code>{ADMIN_PASS} !use <ник></code>", parse_mode="HTML")
+                bot.send_message(message.chat.id, f"❌ Формат: <code>{ADMIN_PASS} !use [ник]</code>", parse_mode="HTML")
 
-        # 3. КОМАНДА: !cancel <ID>
         elif command == "!cancel":
             if len(parts) >= 2:
                 req_id = parts[1].upper()
@@ -196,9 +195,8 @@ def admin_commands(message):
                 else:
                     bot.send_message(message.chat.id, "❌ Заявка с таким ID не найдена.")
             else:
-                bot.send_message(message.chat.id, f"❌ Использование: <code>{ADMIN_PASS} !cancel <ID> [причина]</code>", parse_mode="HTML")
+                bot.send_message(message.chat.id, f"❌ Формат: <code>{ADMIN_PASS} !cancel [ID] [причина]</code>", parse_mode="HTML")
 
-        # 4. КОМАНДА: !accept <ID> <монеты>
         elif command == "!accept":
             if len(parts) >= 2:
                 req_id = parts[1].upper()
@@ -209,7 +207,7 @@ def admin_commands(message):
                         amount = parts[2] if len(parts) >= 3 else "0"
                         user_msg = f"✅ <b>Твой депозит одобрен!</b>\n\nЗайди в раздел КОДЫ в игре и введи это, чтобы получить монеты:\n<code>DEV-{amount}</code>"
                         bot.send_message(req['user_id'], user_msg, parse_mode="HTML")
-                        bot.send_message(message.chat.id, f"✅ Заявка <b>{req_id}</b> закрыта. Игроку выдан код на {amount} монет.", parse_mode="HTML")
+                        bot.send_message(message.chat.id, f"✅ Заявка <b>{req_id}</b> закрыта. Выдан DEV-код на {amount} монет.", parse_mode="HTML")
                     
                     elif req['type'] == 'withdraw':
                         user_msg = f"✅ <b>Твой вывод успешно завершен!</b>\n\nПредметы были переданы тебе в игре."
@@ -221,29 +219,25 @@ def admin_commands(message):
                 else:
                     bot.send_message(message.chat.id, "❌ Заявка с таким ID не найдена.")
             else:
-                bot.send_message(message.chat.id, f"❌ Использование:\nПополнение: <code>{ADMIN_PASS} !accept <ID> <монеты></code>\nВывод: <code>{ADMIN_PASS} !accept <ID></code>", parse_mode="HTML")
+                bot.send_message(message.chat.id, f"❌ Формат:\nПополнение: <code>{ADMIN_PASS} !accept [ID] [сумма]</code>\nВывод: <code>{ADMIN_PASS} !accept [ID]</code>", parse_mode="HTML")
 
-        # 5. КОМАНДА: !week <item1> <item2>
         elif command == "!week":
             if len(parts) >= 3:
                 items_str = ", ".join(parts[1:])
                 bot.send_message(message.chat.id, f"📅 Предметы недели для вывода обновлены: <b>{items_str}</b>", parse_mode="HTML")
             else:
-                bot.send_message(message.chat.id, f"❌ Использование: <code>{ADMIN_PASS} !week <item1> <item2></code>", parse_mode="HTML")
+                bot.send_message(message.chat.id, f"❌ Формат: <code>{ADMIN_PASS} !week [item1] [item2]</code>", parse_mode="HTML")
 
-        # 6. КОМАНДА: !brainrot
         elif command == "!brainrot":
             bot.send_message(message.chat.id, "🧠 База брейнротов успешно обновлена.", parse_mode="HTML")
 
-        # 7. КОМАНДА: !vivod <ник>
         elif command == "!vivod":
             if len(parts) >= 2:
                 nick = parts[1]
                 bot.send_message(message.chat.id, f"💸 Система вывода проверена для игрока <b>{nick}</b>. Ошибок нет.", parse_mode="HTML")
             else:
-                bot.send_message(message.chat.id, f"❌ Использование: <code>{ADMIN_PASS} !vivod <ник></code>", parse_mode="HTML")
+                bot.send_message(message.chat.id, f"❌ Формат: <code>{ADMIN_PASS} !vivod [ник]</code>", parse_mode="HTML")
 
-        # 8. КОМАНДА: !code <код> <акт.> <монеты>
         elif command == "!code":
             if len(parts) >= 4:
                 code_name = parts[1].upper()
@@ -254,17 +248,16 @@ def admin_commands(message):
                     save_data(PROMOS_FILE, promos_db)
                     bot.send_message(message.chat.id, f"✅ Создан новый промокод: <b>{code_name}</b>\nАктиваций: {limit}\nНаграда: {reward} 💰", parse_mode="HTML")
                 except ValueError:
-                    bot.send_message(message.chat.id, "❌ Ошибка: <акт.> и <монеты> должны быть цифрами.", parse_mode="HTML")
+                    bot.send_message(message.chat.id, "❌ Ошибка: лимит и награда должны быть цифрами.", parse_mode="HTML")
             else:
-                bot.send_message(message.chat.id, f"❌ Использование: <code>{ADMIN_PASS} !code <код> <акт.> <монеты></code>", parse_mode="HTML")
+                bot.send_message(message.chat.id, f"❌ Формат: <code>{ADMIN_PASS} !code [код] [лимит] [монеты]</code>", parse_mode="HTML")
                 
         else:
             bot.send_message(message.chat.id, f"❓ Неизвестная команда: {command}", parse_mode="HTML")
             
     except Exception as e:
-        bot.send_message(message.chat.id, f"⚠️ <b>Произошла системная ошибка (Бот не выключился):</b>\n<code>{e}</code>", parse_mode="HTML")
+        bot.send_message(message.chat.id, f"⚠️ <b>Произошла ошибка:</b>\n<code>{e}</code>", parse_mode="HTML")
 
-# Запуск бота
 if __name__ == '__main__':
-    print("Бот запущен и полностью защищен от падений...")
+    print("Бот запущен...")
     bot.polling(none_stop=True)
